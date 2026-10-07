@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Dashboard</title>
+
+    <link rel="stylesheet"
+          href="style2.css">
+
+</head>
+
+<body>
+
+<div class="dashboard-page">
+
+    <!-- HEADER -->
+
+    <div class="dashboard-header">
+
+        <div>
+
+            <h2>My Dashboard</h2>
+
+            <p>Welcome back!</p>
+
+        </div>
+
+        <div class="profile-icon">
+            👤
+        </div>
+
+    </div>
+
+
+    <!-- CONTENT -->
+
+    <div class="dashboard-content">
+
+
+        <!-- WELCOME CARD -->
+
+        <div class="welcome-card">
+
+            <h1>
+                Welcome, <span id="welcomeusername"></span> 👋
+            </h1>
+
+            <p>
+                You have successfully logged in
+                to your account.
+            </p>
+
+        </div>
+
+
+        <!-- USER CARD -->
+
+        <div class="user-card">
+
+            <div class="user-avatar">
+                👤
+            </div>
+
+            <div class="user-info">
+
+                <h3 id="dashboardusername">
+                    User
+                </h3>
+
+                <p id="email">
+                    user@example.com
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <!-- DASHBOARD CARDS -->
+
+        <div class="dashboard-cards">
+
+
+            <div class="dashboard-card">
+
+                <div class="card-icon">
+                    👤
+                </div>
+
+                <h3>Profile</h3>
+
+                <p>
+                    View and manage your
+                    profile information.
+                </p>
+
+            </div>
+
+
+            <div class="dashboard-card">
+
+                <div class="card-icon">
+                    📊
+                </div>
+
+                <h3>Activity</h3>
+
+                <p>
+                    Check your recent
+                    account activity.
+                </p>
+
+            </div>
+
+
+            <div class="dashboard-card">
+
+                <div class="card-icon">
+                    ⚙️
+                </div>
+
+                <h3>Settings</h3>
+
+                <p>
+                    Manage your account
+                    settings.
+                </p>
+
+            </div>
+
+
+        </div>
+
+
+        <!-- INFORMATION -->
+
+        <div class="info-section">
+
+            <h2>About Dashboard</h2>
+
+            <p>
+                This dashboard allows you to
+                access your account information,
+                view your activities and manage
+                your settings from one place.
+            </p>
+
+        </div>
+
+
+        <!-- LOGOUT -->
+
+        <div class="dashboard-logout">
+
+            <button id="logoutBtn">
+                🚪 Logout
+            </button>
+
+        </div>
+
+
+        <p id="message"></p>
+
+
+    </div>
+
+
+    <!-- FOOTER -->
+
+    <div class="dashboard-footer">
+
+        © 2026 My Application |
+        All Rights Reserved
+
+    </div>
+
+</div>
+
+
+<script>
+
+const API_URL = "/api/auth";
+
+
+// ========================================
+// CHECK LOGIN SESSION
+// ========================================
+
+async function checkSession() {
+
+    try {
+
+        console.log("Checking session...");
+
+        const response = await fetch(
+            `${API_URL}/session`,
+            {
+                method: "GET",
+                credentials: "include"
+            }
+        );
+
+
+        console.log(
+            "Session status:",
+            response.status
+        );
+
+
+        // User is NOT logged in
+
+        if (!response.ok) {
+
+            console.log("Session not found");
+
+            window.location.href = "index.html";
+
+            return;
+        }
+
+
+        // Get user information
+
+        const user = await response.json();
+
+        console.log(
+            "Logged in user:",
+            user
+        );
+
+
+        // ========================================
+        // DISPLAY USERNAME IN WELCOME CARD
+        // ========================================
+
+        const welcomeUsername =
+            document.getElementById(
+                "welcomeusername"
+            );
+
+        if (welcomeUsername) {
+
+            welcomeUsername.textContent =
+                user.username;
+
+        }
+
+
+        // ========================================
+        // DISPLAY USERNAME IN USER CARD
+        // ========================================
+
+        const dashboardUsername =
+            document.getElementById(
+                "dashboardusername"
+            );
+
+        if (dashboardUsername) {
+
+            dashboardUsername.textContent =
+                user.username;
+
+        }
+
+
+        // ========================================
+        // DISPLAY EMAIL
+        // ========================================
+
+        const email =
+            document.getElementById("email");
+
+        if (email) {
+
+            email.textContent =
+                user.email;
+
+        }
+
+
+    } catch (error) {
+
+        console.error(
+            "Session check error:",
+            error
+        );
+
+        window.location.href =
+            "index.html";
+
+    }
+
+}
+
+
+// ========================================
+// LOGOUT
+// ========================================
+
+const logoutBtn =
+    document.getElementById("logoutBtn");
+
+
+if (logoutBtn) {
+
+    logoutBtn.addEventListener(
+        "click",
+        async function () {
+
+            try {
+
+                console.log(
+                    "Logging out..."
+                );
+
+
+                const response =
+                    await fetch(
+                        `${API_URL}/logout`,
+                        {
+                            method: "POST",
+                            credentials: "include"
+                        }
+                    );
+
+
+                if (response.ok) {
+
+                    console.log(
+                        "Logout successful"
+                    );
+
+                    window.location.href =
+                        "index.html";
+
+                } else {
+
+                    const data =
+                        await response.text();
+
+                    console.error(
+                        "Logout failed:",
+                        data
+                    );
+
+                    alert(
+                        data ||
+                        "Logout failed"
+                    );
+
+                }
+
+
+            } catch (error) {
+
+                console.error(
+                    "Logout error:",
+                    error
+                );
+
+                alert(
+                    "Unable to connect to server"
+                );
+
+            }
+
+        }
+    );
+
+}
+
+
+// ========================================
+// START SESSION CHECK
+// ========================================
+
+checkSession();
+
+</script>
+
+
+</body>
+
+</html>
+

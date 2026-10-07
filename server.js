@@ -8,32 +8,47 @@ const MySQLStore = require("express-mysql-session")(session);
 
 const pool = require("./db");
 
-
 // CREATE EXPRESS APP
 const app = express();
 
 const PORT = process.env.PORT || 8080;
+
+// ================================
+// MIDDLEWARE
+// ================================
+
 app.use(express.json());
+
+// Serve HTML, CSS and JavaScript
+app.use(express.static("public"));
+
+// ================================
 // CORS
+// ================================
+
 app.use(cors({
-    origin: "http://127.0.0.1:5500",
+    origin: true,
     credentials: true
 }));
+
+app.set("trust proxy",1);
+
+// ================================
 // MYSQL SESSION STORE
+// ================================
+
 const sessionStore = new MySQLStore({
-
     host: process.env.DB_HOST,
-
     port: process.env.DB_PORT,
-
     user: process.env.DB_USER,
-
     password: process.env.DB_PASSWORD,
-
     database: process.env.DB_NAME
-
 });
+
+// ================================
 // SESSION CONFIGURATION
+// ================================
+
 app.use(session({
 
     name: "login.sid",
@@ -48,26 +63,36 @@ app.use(session({
 
     cookie: {
         httpOnly: true,
-        secure: true,
-        sameSite: "none",
+
+        // Railway uses HTTPS
+        secure: process.env.NODE_ENV === "production",
+
+        sameSite: "lax",
+
         maxAge: 1000 * 60 * 60
     }
 
 }));
-// HOME API
+
+// ================================
+// HOME
+// ================================
 
 app.get("/", (req, res) => {
 
-    res.send("Node.js Login Backend is running!");
+    res.sendFile(__dirname + "/public/index.html");
 
 });
+
+// ================================
 // REGISTER API
+// ================================
+
 app.post("/api/auth/register", async (req, res) => {
 
     try {
 
         const { username, email, password } = req.body;
-
 
         // Check empty fields
         if (!username || !email || !password) {
@@ -78,16 +103,11 @@ app.post("/api/auth/register", async (req, res) => {
 
         }
 
-
         // Check existing email
         const [existingUser] = await pool.query(
-
             "SELECT * FROM users WHERE email = ?",
-
             [email]
-
         );
-
 
         if (existingUser.length > 0) {
 
@@ -97,38 +117,30 @@ app.post("/api/auth/register", async (req, res) => {
 
         }
 
-
         // Hash password
         const hashedPassword = await bcrypt.hash(
             password,
             10
         );
 
-
         // Insert user
         await pool.query(
-
             "INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
-
             [
                 username,
                 email,
                 hashedPassword
             ]
-
         );
-
 
         console.log(
             "User registered:",
             email
         );
 
-
         res.status(201).send(
             "Registration successful"
         );
-
 
     } catch (error) {
 
@@ -144,14 +156,16 @@ app.post("/api/auth/register", async (req, res) => {
     }
 
 });
+
+// ================================
 // LOGIN API
+// ================================
 
 app.post("/api/auth/login", async (req, res) => {
 
     try {
 
         const { email, password } = req.body;
-
 
         // Check fields
         if (!email || !password) {
@@ -162,16 +176,11 @@ app.post("/api/auth/login", async (req, res) => {
 
         }
 
-
         // Find user
         const [users] = await pool.query(
-
             "SELECT * FROM users WHERE email = ?",
-
             [email]
-
         );
-
 
         // User not found
         if (users.length === 0) {
@@ -182,19 +191,13 @@ app.post("/api/auth/login", async (req, res) => {
 
         }
 
-
         const user = users[0];
-
 
         // Compare password
         const passwordMatch = await bcrypt.compare(
-
             password,
-
             user.password
-
         );
-
 
         // Wrong password
         if (!passwordMatch) {
@@ -205,19 +208,15 @@ app.post("/api/auth/login", async (req, res) => {
 
         }
 
-
         console.log(
             "Login successful:",
             user.email
         );
+
         // CREATE SESSION
-
         req.session.userId = user.id;
-
         req.session.username = user.username;
-
         req.session.email = user.email;
-
 
         // Save session
         req.session.save((error) => {
@@ -235,12 +234,10 @@ app.post("/api/auth/login", async (req, res) => {
 
             }
 
-
             console.log(
                 "Session created for:",
                 user.email
             );
-
 
             res.status(200).json({
 
@@ -253,7 +250,6 @@ app.post("/api/auth/login", async (req, res) => {
             });
 
         });
-
 
     } catch (error) {
 
@@ -269,7 +265,11 @@ app.post("/api/auth/login", async (req, res) => {
     }
 
 });
+
+// ================================
 // SESSION CHECK API
+// ================================
+
 app.get("/api/auth/session", async (req, res) => {
 
     try {
@@ -278,7 +278,6 @@ app.get("/api/auth/session", async (req, res) => {
             "Session userId:",
             req.session.userId
         );
-
 
         // Check session
         if (!req.session.userId) {
@@ -291,16 +290,11 @@ app.get("/api/auth/session", async (req, res) => {
 
         }
 
-
         // Get user
         const [users] = await pool.query(
-
             "SELECT id, username, email FROM users WHERE id = ?",
-
             [req.session.userId]
-
         );
-
 
         if (users.length === 0) {
 
@@ -312,9 +306,7 @@ app.get("/api/auth/session", async (req, res) => {
 
         }
 
-
         const user = users[0];
-
 
         res.status(200).json({
 
@@ -325,7 +317,6 @@ app.get("/api/auth/session", async (req, res) => {
             email: user.email
 
         });
-
 
     } catch (error) {
 
@@ -343,7 +334,11 @@ app.get("/api/auth/session", async (req, res) => {
     }
 
 });
+
+// ================================
 // LOGOUT API
+// ================================
+
 app.post("/api/auth/logout", (req, res) => {
 
     req.session.destroy((error) => {
@@ -361,15 +356,12 @@ app.post("/api/auth/logout", (req, res) => {
 
         }
 
-
         // Clear session cookie
         res.clearCookie("login.sid");
-
 
         console.log(
             "User logged out"
         );
-
 
         res.status(200).send(
             "Logout successful"
@@ -378,11 +370,15 @@ app.post("/api/auth/logout", (req, res) => {
     });
 
 });
+
+// ================================
 // START SERVER
-app.listen(PORT, () => {
+// ================================
+
+app.listen(PORT, "0.0.0.0", () => {
 
     console.log(
-        `Server running at http://localhost:${PORT}`
+        `Server running on port ${PORT}`
     );
 
 });
